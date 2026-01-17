@@ -1,98 +1,241 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import {
+    Alert,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Colors } from "../../constants/Colors";
+import { useWorkout } from "../../contexts/WorkoutContext";
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const { userProfile, history, routines, clearHistory } = useWorkout();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const handleClearHistory = () => {
+    Alert.alert(
+      "Clear History",
+      "Are you sure you want to delete all workout history? This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: async () => {
+            await clearHistory();
+          },
+        },
+      ],
+    );
+  };
+
+  const recentWorkouts = history.slice(0, 3);
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.greeting}>Welcome back,</Text>
+          <Text style={styles.username}>{userProfile?.name || "Athlete"}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Start</Text>
+          <Pressable
+            style={styles.primaryAction}
+            onPress={() => router.push("/(tabs)/routines")}
+          >
+            <View style={styles.actionIcon}>
+              <Ionicons name="add" size={32} color={Colors.white} />
+            </View>
+            <View>
+              <Text style={styles.actionTitle}>Start a New Workout</Text>
+              <Text style={styles.actionSubtitle}>
+                Choose from your routines
+              </Text>
+            </View>
+          </Pressable>
+
+          <Pressable
+            style={[
+              styles.primaryAction,
+              {
+                marginTop: 16,
+                backgroundColor: Colors.card,
+                borderWidth: 1,
+                borderColor: Colors.border,
+                shadowOpacity: 0.1,
+              },
+            ]}
+            onPress={() => router.push("/routine/create")}
+          >
+            <View
+              style={[
+                styles.actionIcon,
+                { backgroundColor: Colors.background },
+              ]}
+            >
+              <Ionicons
+                name="create-outline"
+                size={32}
+                color={Colors.primary}
+              />
+            </View>
+            <View>
+              <Text style={[styles.actionTitle, { color: Colors.text }]}>
+                Create Custom Routine
+              </Text>
+              <Text
+                style={[styles.actionSubtitle, { color: Colors.textSecondary }]}
+              >
+                Design your own program
+              </Text>
+            </View>
+          </Pressable>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Activity</Text>
+          </View>
+          {recentWorkouts.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>
+                No workouts yet. Let's get moving!
+              </Text>
+            </View>
+          ) : (
+            recentWorkouts.map((workout) => (
+              <View key={workout.id} style={styles.historyCard}>
+                <View>
+                  <Text style={styles.historyTitle}>{workout.routineName}</Text>
+                  <Text style={styles.historyDate}>
+                    {new Date(workout.startTime).toLocaleDateString()}
+                  </Text>
+                </View>
+                <View style={styles.historyMeta}>
+                  <Ionicons
+                    name="time-outline"
+                    size={16}
+                    color={Colors.textSecondary}
+                  />
+                  <Text style={styles.historyTime}>
+                    {Math.floor(workout.durationSeconds / 60)} min
+                  </Text>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  content: {
+    padding: 24,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  header: {
+    marginBottom: 32,
+  },
+  greeting: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+  },
+  username: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: Colors.text,
+  },
+  section: {
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: Colors.text,
+  },
+  clearText: {
+    color: Colors.danger,
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  primaryAction: {
+    backgroundColor: Colors.primary,
+    borderRadius: 20,
+    padding: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  actionIcon: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    padding: 12,
+    borderRadius: 12,
+  },
+  actionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: Colors.white,
+  },
+  actionSubtitle: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.8)",
+  },
+  emptyState: {
+    padding: 24,
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    alignItems: "center",
+  },
+  emptyText: {
+    color: Colors.textSecondary,
+  },
+  historyCard: {
+    backgroundColor: Colors.card,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  historyTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.text,
+  },
+  historyDate: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 4,
+  },
+  historyMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  historyTime: {
+    color: Colors.textSecondary,
+    fontSize: 14,
   },
 });
